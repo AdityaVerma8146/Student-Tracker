@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { GoogleLogin } from '@react-oauth/google'
-import { LogIn, Lock } from 'lucide-react'
+import { LogIn } from 'lucide-react'
 import { setLoginDraft, setCurrentUserEmail, resetLoginDraft } from '../store/authSlice'
 import { loginUser, loginGoogleUser, resetPassword, saveActiveUserEmail } from '../utils/authStorage'
 
@@ -15,6 +15,14 @@ function LoginPage({ onAuthSuccess, switchToSignup }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const googleConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID)
+
+  // Helper to ensure errors are always displayed as strings instead of [object Object]
+  const getErrorMessage = (err) => {
+    if (typeof err === 'string') return err
+    if (err?.message && typeof err.message === 'string') return err.message
+    if (err?.response?.data?.message) return err.response.data.message
+    return 'Authentication failed. Please check your credentials.'
+  }
 
   const handleChange = (field, value) => {
     dispatch(setLoginDraft({ [field]: value }))
@@ -33,14 +41,10 @@ function LoginPage({ onAuthSuccess, switchToSignup }) {
       dispatch(resetLoginDraft())
       onAuthSuccess(userEmail, userData)
     } catch (authError) {
-      setError(authError.message)
+      setError(getErrorMessage(authError))
     }
   }
 
-  // GoogleLogin renders Google's real "Sign in with Google" button. Clicking
-  // it opens Google's own account chooser (the actual browser/Google
-  // session picker) and returns a signed ID token for whichever account the
-  // user picks — nothing here is hardcoded to one email anymore.
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const result = await loginGoogleUser(credentialResponse.credential)
@@ -51,7 +55,7 @@ function LoginPage({ onAuthSuccess, switchToSignup }) {
       dispatch(resetLoginDraft())
       onAuthSuccess(userEmail, userData)
     } catch (authError) {
-      setError(authError.message)
+      setError(getErrorMessage(authError))
     }
   }
 
@@ -73,7 +77,7 @@ function LoginPage({ onAuthSuccess, switchToSignup }) {
       setNewPassword('')
       setConfirmPassword('')
     } catch (authError) {
-      setError(authError.message)
+      setError(getErrorMessage(authError))
     }
   }
 
