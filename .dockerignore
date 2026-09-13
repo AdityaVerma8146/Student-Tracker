@@ -1,0 +1,15 @@
+# Keeps the Docker build context small and fast — none of this is needed
+# inside the image; it either gets rebuilt fresh (node_modules, dist,
+# target) or shouldn't ship in a container image at all (.git, local db
+# files, env files).
+**/node_modules
+**/dist
+**/target
+**/.git
+backend/data
+**/*.mv.db
+**/*.trace.db
+**/.env
+**/.env.local
+**/.DS_Store
+**/*.log

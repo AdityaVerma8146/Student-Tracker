@@ -1,0 +1,39 @@
+{
+  "name": "syllabus-tracker",
+  "version": "2.0.0",
+  "description": "Student Syllabus Tracker & To-Do List Web Application (TypeScript frontend + Spring Boot backend)",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@react-oauth/google": "^0.13.5",
+    "@reduxjs/toolkit": "^1.9.5",
+    "axios": "^1.18.1",
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.263.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^4.12.0",
+    "react-redux": "^8.1.1",
+    "recharts": "^2.10.3",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@types/three": "^0.185.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.5.4",
+    "vite": "^8.2.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'Add eslint for production'"
+  }
+}
