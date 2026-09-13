@@ -20,6 +20,10 @@ WORKDIR /app/backend
 # pom.xml for the details of that.
 RUN mvn clean package -DskipTests
 
+# Force npm to ignore native platform binary checks inside the Linux environment
+RUN cd ../frontend && npm install --include=optional --os=linux --cpu=x64 --legacy-peer-deps
+RUN mvn clean package -DskipTests
+
 # ---- Stage 2: run ----
 # Small JRE-only image for the actual running container — the JDK, Maven,
 # and Node used to build the jar above aren't needed at runtime.
