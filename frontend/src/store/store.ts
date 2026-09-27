@@ -13,8 +13,15 @@ store.subscribe(() => {
     localStorage.setItem(
       'authDraft',
       JSON.stringify({
-        signupDraft: state.signupDraft,
-        loginDraft: state.loginDraft,
+        signupDraft: {
+          email: state.signupDraft.email,
+          password: '',
+          mood: state.signupDraft.mood,
+        },
+        loginDraft: {
+          email: state.loginDraft.email,
+          password: '',
+        },
       })
     )
   } catch (error) {

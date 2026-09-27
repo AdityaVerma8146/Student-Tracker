@@ -37,6 +37,9 @@ public class UserEntity {
     @Column(name = "created_at", nullable = false)
     private String createdAt;
 
+    @Column(name = "last_active")
+    private String lastActive;
+
     @Lob
     @Column(name = "data_json", nullable = false, columnDefinition = "CLOB")
     private String dataJson;
@@ -50,6 +53,7 @@ public class UserEntity {
         this.googleAccount = googleAccount;
         this.createdAt = createdAt;
         this.dataJson = dataJson;
+        this.lastActive = createdAt;
     }
 
     public String getEmail() { return email; }
@@ -75,4 +79,7 @@ public class UserEntity {
 
     public String getDataJson() { return dataJson; }
     public void setDataJson(String dataJson) { this.dataJson = dataJson; }
+
+    public String getLastActive() { return lastActive; }
+    public void setLastActive(String lastActive) { this.lastActive = lastActive; }
 }

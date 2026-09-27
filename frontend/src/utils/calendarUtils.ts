@@ -49,8 +49,6 @@ export function formatDayLabel(iso: string): string {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-/* Build a 6-row x 7-col calendar grid for the given month, including the
-   padding days from the previous/next month needed to fill the grid. */
 export function buildMonthMatrix(year: number, month: number): MonthCell[] {
   const firstOfMonth = new Date(year, month, 1)
   const firstWeekday = firstOfMonth.getDay()
@@ -71,4 +69,91 @@ export function buildMonthMatrix(year: number, month: number): MonthCell[] {
   }
 
   return cells
+}
+
+export function buildWeekMatrix(referenceIso: string): MonthCell[] {
+  const target = new Date(`${referenceIso}T00:00:00`)
+  const dayOfWeek = target.getDay() // 0 = Sun
+  const sunday = addDays(target, -dayOfWeek)
+  
+  const cells: MonthCell[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(sunday, i)
+    cells.push({
+      iso: toISODate(d),
+      day: d.getDate(),
+      inMonth: true,
+    })
+  }
+  return cells
+}
+
+export function timeToMinutes(t?: string): number | null {
+  if (!t || typeof t !== 'string') return null
+  const parts = t.split(':')
+  if (parts.length < 2) return null
+  const h = parseInt(parts[0], 10)
+  const m = parseInt(parts[1], 10)
+  if (isNaN(h) || isNaN(m)) return null
+  return h * 60 + m
+}
+
+export function checkTaskConflict(
+  candidate: { date: string; startTime?: string; endTime?: string; id?: number },
+  existingTasks: { id: number; date: string; startTime?: string; endTime?: string; title: string }[]
+): { id: number; title: string; startTime?: string; endTime?: string } | null {
+  if (!candidate.date || !candidate.startTime || !candidate.endTime) return null
+  const cStart = timeToMinutes(candidate.startTime)
+  const cEnd = timeToMinutes(candidate.endTime)
+  if (cStart === null || cEnd === null || cEnd <= cStart) return null
+
+  for (const t of existingTasks) {
+    if (candidate.id && t.id === candidate.id) continue
+    if (t.date !== candidate.date) continue
+    if (!t.startTime || !t.endTime) continue
+    const tStart = timeToMinutes(t.startTime)
+    const tEnd = timeToMinutes(t.endTime)
+    if (tStart === null || tEnd === null) continue
+
+    // overlap condition
+    if (cStart < tEnd && cEnd > tStart) {
+      return t
+    }
+  }
+  return null
+}
+
+export function getAllConflicts(tasks: { id: number; date: string; startTime?: string; endTime?: string }[]): Set<number> {
+  const conflictIds = new Set<number>()
+  const byDate: Record<string, typeof tasks> = {}
+  
+  for (const t of tasks) {
+    if (!t.startTime || !t.endTime) continue
+    if (!byDate[t.date]) byDate[t.date] = []
+    byDate[t.date].push(t)
+  }
+
+  for (const date in byDate) {
+    const dayTasks = byDate[date]
+    for (let i = 0; i < dayTasks.length; i++) {
+      const a = dayTasks[i]
+      const aStart = timeToMinutes(a.startTime)
+      const aEnd = timeToMinutes(a.endTime)
+      if (aStart === null || aEnd === null) continue
+
+      for (let j = i + 1; j < dayTasks.length; j++) {
+        const b = dayTasks[j]
+        const bStart = timeToMinutes(b.startTime)
+        const bEnd = timeToMinutes(b.endTime)
+        if (bStart === null || bEnd === null) continue
+
+        if (aStart < bEnd && aEnd > bStart) {
+          conflictIds.add(a.id)
+          conflictIds.add(b.id)
+        }
+      }
+    }
+  }
+
+  return conflictIds
 }

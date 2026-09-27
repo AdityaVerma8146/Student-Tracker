@@ -47,8 +47,16 @@ const initialState: AuthState = {
 
 const savedDraft = draftFromStorage()
 if (savedDraft) {
-  initialState.signupDraft = savedDraft.signupDraft || initialState.signupDraft
-  initialState.loginDraft = savedDraft.loginDraft || initialState.loginDraft
+  initialState.signupDraft = {
+    ...initialState.signupDraft,
+    ...(savedDraft.signupDraft || {}),
+    password: '',
+  }
+  initialState.loginDraft = {
+    ...initialState.loginDraft,
+    ...(savedDraft.loginDraft || {}),
+    password: '',
+  }
 }
 
 const authSlice = createSlice({

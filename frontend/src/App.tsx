@@ -7,13 +7,14 @@ import Diary from './components/Diary'
 import Profile from './components/Profile'
 import Signup from './components/Signup'
 import LoginPage from './components/Login'
+import LandingPage from './components/LandingPage'
 import RoadmapView from './components/RoadmapView'
 import CalendarView from './components/CalendarView'
 import GroupsView from './components/GroupsView'
 import AIAssistant from './components/AIAssistant'
 import { setCurrentUserEmail } from './store/authSlice'
 import { useAppDispatch, useAppSelector } from './store/hooks'
-import { loadActiveUserEmail, saveActiveUserEmail, getUserData, saveUserData } from './utils/authStorage'
+import { loadActiveUserEmail, saveActiveUserEmail, getUserData, saveUserData, sendHeartbeat, logoutUser } from './utils/authStorage'
 import { getCurrentWeekDates } from './utils/storage'
 import { createDefaultRoadmap } from './data/roadmapData'
 import type {
@@ -43,6 +44,7 @@ function App() {
   const [currentView, setCurrentView] = useState<CurrentView>('dashboard')
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const dispatch = useAppDispatch()
   const currentUserEmail = useAppSelector((state) => state.auth.currentUserEmail)
@@ -73,10 +75,10 @@ function App() {
           console.error('Failed to load saved data for active user:', (error as Error).message)
           saveActiveUserEmail(null)
           dispatch(setCurrentUserEmail(null))
-          setCurrentView('login')
+          setCurrentView('landing')
         }
       } else {
-        setCurrentView('login')
+        setCurrentView('landing')
       }
     }
 
@@ -105,6 +107,16 @@ function App() {
     }
     persist()
   }, [currentUserEmail, subjects, dailyTasks, diaryEntries, calendarTasks, roadmap, profile])
+
+  // Heartbeat interval
+  useEffect(() => {
+    if (!currentUserEmail) return
+    sendHeartbeat(currentUserEmail) // Send immediately on load
+    const interval = setInterval(() => {
+      sendHeartbeat(currentUserEmail)
+    }, 60000) // Every 1 minute
+    return () => clearInterval(interval)
+  }, [currentUserEmail])
 
   // Save dark mode preference
   useEffect(() => {
@@ -137,7 +149,12 @@ function App() {
     dataReadyRef.current = true
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+    } catch (error) {
+      console.error('Failed to end server session:', (error as Error).message)
+    }
     dispatch(setCurrentUserEmail(null))
     saveActiveUserEmail(null)
     setSubjects([])
@@ -146,14 +163,24 @@ function App() {
     setCalendarTasks([])
     setRoadmap(createDefaultRoadmap())
     setProfile(emptyProfile)
-    setCurrentView('login')
+    setCurrentView('landing')
     dataReadyRef.current = false
   }
 
-  const addSubject = (subjectName: string) => {
+  const addSubject = (subjectInput: (Partial<Subject> & { name: string }) | string) => {
+    const isObj = typeof subjectInput === 'object'
+    const name = isObj ? subjectInput.name : subjectInput
     const newSubject: Subject = {
       id: Date.now(),
-      name: subjectName,
+      name,
+      code: isObj ? subjectInput.code : undefined,
+      teacher: isObj ? subjectInput.teacher : undefined,
+      credits: isObj ? subjectInput.credits : undefined,
+      studyHours: isObj ? subjectInput.studyHours : undefined,
+      difficulty: isObj ? subjectInput.difficulty : 'medium',
+      priority: isObj ? subjectInput.priority : 'medium',
+      notes: isObj ? subjectInput.notes : undefined,
+      assignments: isObj ? subjectInput.assignments || [] : [],
       chapters: [],
       createdAt: new Date().toISOString(),
     }
@@ -161,12 +188,9 @@ function App() {
     setCurrentView('subjects')
   }
 
-  const updateSubject = (id: number, updatedName: string) => {
-    setSubjects(subjects.map((s) => (s.id === id ? { ...s, name: updatedName } : s)))
+  const updateSubject = (id: number, patch: Partial<Subject>) => {
+    setSubjects(subjects.map((s) => (s.id === id ? { ...s, ...patch } : s)))
   }
-  // Referenced by SubjectList's rename flow; kept for API parity even though
-  // the current UI drives renames inline.
-  void updateSubject
 
   const deleteSubject = (id: number) => {
     if (confirm('Are you sure you want to delete this subject? All chapters and topics will be removed.')) {
@@ -318,11 +342,15 @@ function App() {
     setProfile((prev) => ({ ...prev, ...updates }))
   }
 
-  const addCalendarTask = (task: { title: string; date: string; category: string }) => {
+  const addCalendarTask = (task: Omit<CalendarTask, 'id' | 'createdAt' | 'done'>) => {
     setCalendarTasks([
       ...calendarTasks,
       { id: Date.now(), done: false, createdAt: new Date().toISOString(), ...task },
     ])
+  }
+
+  const updateCalendarTask = (id: number, updates: Partial<CalendarTask>) => {
+    setCalendarTasks(calendarTasks.map(t => t.id === id ? { ...t, ...updates } : t))
   }
 
   const toggleCalendarTask = (id: number) => {
@@ -367,13 +395,20 @@ function App() {
   if (!currentUserEmail) {
     return (
       <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
-        <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200 min-h-screen flex items-center justify-center px-4 py-8">
-          {currentView === 'signup' ? (
-            <Signup switchToLogin={() => setCurrentView('login')} />
-          ) : (
-            <LoginPage onAuthSuccess={handleAuthSuccess} switchToSignup={() => setCurrentView('signup')} />
-          )}
-        </div>
+        {currentView === 'landing' ? (
+          <LandingPage 
+            onLogin={() => setCurrentView('login')} 
+            onSignup={() => setCurrentView('signup')} 
+          />
+        ) : (
+          <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200 min-h-screen flex items-center justify-center px-4 py-8">
+            {currentView === 'signup' ? (
+              <Signup switchToLogin={() => setCurrentView('login')} />
+            ) : (
+              <LoginPage onAuthSuccess={handleAuthSuccess} switchToSignup={() => setCurrentView('signup')} />
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -399,7 +434,18 @@ function App() {
 
         <main className="container mx-auto px-4 py-8 max-w-7xl">
           {currentView === 'dashboard' && (
-            <Dashboard subjects={filteredSubjects} dailyTasks={dailyTasks} onAddDailyTask={addDailyTask} onToggleDailyTask={toggleDailyTask} onDeleteDailyTask={deleteDailyTask} />
+            <Dashboard 
+              profile={profile}
+              subjects={filteredSubjects} 
+              dailyTasks={dailyTasks} 
+              calendarTasks={calendarTasks}
+              onToggleCalendarTask={toggleCalendarTask}
+              onOpenAi={() => setAiOpen(true)}
+              onAddDailyTask={addDailyTask} 
+              onToggleDailyTask={toggleDailyTask} 
+              onDeleteDailyTask={deleteDailyTask} 
+              onNavigate={(view) => setCurrentView(view)}
+            />
           )}
 
           {currentView === 'subjects' && (
@@ -408,6 +454,7 @@ function App() {
               <SubjectList
                 subjects={filteredSubjects}
                 onDeleteSubject={deleteSubject}
+                onUpdateSubject={updateSubject}
                 onAddChapter={addChapter}
                 onUpdateChapter={updateChapter}
                 onDeleteChapter={deleteChapter}
@@ -423,7 +470,9 @@ function App() {
           {currentView === 'calendar' && (
             <CalendarView
               tasks={calendarTasks}
+              subjects={subjects}
               onAddTask={addCalendarTask}
+              onUpdateTask={updateCalendarTask}
               onToggleTask={toggleCalendarTask}
               onDeleteTask={deleteCalendarTask}
             />
@@ -458,6 +507,8 @@ function App() {
           roadmap={roadmap}
           setRoadmap={setRoadmap}
           onAddCalendarTasks={addCalendarTasksBulk}
+          isOpen={aiOpen}
+          onToggleOpen={setAiOpen}
         />
       </div>
     </div>

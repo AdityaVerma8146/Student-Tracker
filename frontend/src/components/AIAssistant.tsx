@@ -12,6 +12,8 @@ interface AIAssistantProps {
   roadmap: Roadmap
   setRoadmap: React.Dispatch<React.SetStateAction<Roadmap>>
   onAddCalendarTasks: (tasks: { title: string; date: string; category: string }[]) => void
+  isOpen?: boolean
+  onToggleOpen?: (open: boolean) => void
 }
 
 type Tab = 'chat' | 'fix' | 'schedule'
@@ -25,8 +27,20 @@ function buildContextSummary(subjects: Subject[], roadmap: Roadmap): string {
   return parts.join(' ')
 }
 
-export default function AIAssistant({ subjects, roadmap, onAddCalendarTasks }: AIAssistantProps) {
-  const [open, setOpen] = useState(false)
+export default function AIAssistant({
+  subjects,
+  roadmap,
+  onAddCalendarTasks,
+  isOpen,
+  onToggleOpen,
+}: AIAssistantProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = isOpen !== undefined ? isOpen : internalOpen
+  const setOpen = (val: boolean | ((prev: boolean) => boolean)) => {
+    const nextVal = typeof val === 'function' ? val(open) : val
+    if (onToggleOpen) onToggleOpen(nextVal)
+    setInternalOpen(nextVal)
+  }
   const [tab, setTab] = useState<Tab>('chat')
 
   // ---- Chat state ----

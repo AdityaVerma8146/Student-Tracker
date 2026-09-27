@@ -15,6 +15,6 @@ import axios from 'axios'
 // below will be sent there instead.
 const baseURL = (import.meta.env.VITE_API_URL as string | undefined)?.trim().replace(/\/+$/, '') || ''
 
-const apiClient = axios.create({ baseURL })
+const apiClient = axios.create({ baseURL, withCredentials: true, timeout: 15000 })
 
 export default apiClient

@@ -7,7 +7,6 @@ const localUsersKey = 'syllabusTrackerLocalUsers'
 const localUserDataKey = 'syllabusTrackerLocalUserData'
 
 interface LocalUserRecord {
-  passwordHash: string
   mood: string
   createdAt: string
   data: UserData
@@ -42,12 +41,29 @@ const parseLocalUsers = (): LocalUsersMap => {
   if (!storage) return {}
   try {
     const raw = storage.getItem(localUsersKey)
-    return raw ? JSON.parse(raw) : {}
+    const users = (raw ? JSON.parse(raw) : {}) as Record<string, LocalUserRecord & { passwordHash?: string }>
+    let removedLegacyPassword = false
+    for (const user of Object.values(users)) {
+      if ('passwordHash' in user) {
+        delete user.passwordHash
+        removedLegacyPassword = true
+      }
+    }
+    if (removedLegacyPassword) {
+      try {
+        storage.setItem(localUsersKey, JSON.stringify(users))
+      } catch (error) {
+        console.error('Failed to remove legacy local password hashes:', error)
+      }
+    }
+    return users
   } catch (error) {
     console.error('Failed to parse stored users:', error)
     return {}
   }
 }
+
+parseLocalUsers()
 
 const writeLocalUsers = (users: LocalUsersMap): void => {
   const storage = getSafeStorage()
@@ -73,17 +89,9 @@ const writeLocalUserData = (data: LocalUserDataMap): void => {
   storage.setItem(localUserDataKey, JSON.stringify(data))
 }
 
-const hashPassword = (password: string): string => {
-  try {
-    return btoa(String(password))
-  } catch {
-    return String(password)
-  }
-}
-
 const normalizeEmail = (email?: string | null): string | undefined => email?.trim().toLowerCase()
 
-type FallbackAction = 'register' | 'login' | 'reset-password' | 'get-user-data' | 'save-user-data'
+type FallbackAction = 'get-user-data' | 'save-user-data'
 
 interface FallbackRequest {
   action: FallbackAction
@@ -95,54 +103,6 @@ const resolveStorageFallback = async ({ action, payload }: FallbackRequest): Pro
   if (!storage) return null
 
   const users = parseLocalUsers()
-
-  if (action === 'register') {
-    const normalizedEmail = normalizeEmail(payload.email as string)
-    const password = payload.password as string
-    if (!normalizedEmail || !password) {
-      throw new Error('Email and password are required.')
-    }
-    if (users[normalizedEmail]) {
-      throw new Error('An account with this email already exists.')
-    }
-
-    users[normalizedEmail] = {
-      passwordHash: hashPassword(password),
-      mood: (payload.mood as string) || '😊',
-      createdAt: new Date().toISOString(),
-      data: createEmptyUserData(),
-    }
-    writeLocalUsers(users)
-    return normalizedEmail
-  }
-
-  if (action === 'login') {
-    const normalizedEmail = normalizeEmail(payload.email as string)
-    const user = normalizedEmail ? users[normalizedEmail] : undefined
-    if (!user) {
-      throw new Error('No account found for that email.')
-    }
-    if (user.passwordHash !== hashPassword(payload.password as string)) {
-      throw new Error('Invalid password. Please try again.')
-    }
-
-    return {
-      email: normalizedEmail,
-      mood: user.mood,
-      data: user.data || createEmptyUserData(),
-    } as AuthResponse
-  }
-
-  if (action === 'reset-password') {
-    const normalizedEmail = normalizeEmail(payload.email as string)
-    const user = normalizedEmail ? users[normalizedEmail] : undefined
-    if (!user || !normalizedEmail) {
-      throw new Error('No account found for that email.')
-    }
-    user.passwordHash = hashPassword(payload.newPassword as string)
-    writeLocalUsers(users)
-    return { email: normalizedEmail }
-  }
 
   if (action === 'get-user-data') {
     const normalizedEmail = normalizeEmail(payload.email as string)
@@ -231,15 +191,7 @@ export const registerUser = async ({ email, password, mood }: { email: string; p
     const response = await apiClient.post('/api/signup', { email: normalizedEmail, password, mood })
     return response.data.email
   } catch (error) {
-    if (!isUnreachable(error)) throw parseAxiosError(error)
-    try {
-      return (await resolveStorageFallback({
-        action: 'register',
-        payload: { email: normalizedEmail, password, mood },
-      })) as string
-    } catch (fallbackError) {
-      throw parseAxiosError(fallbackError)
-    }
+    throw parseAxiosError(error)
   }
 }
 
@@ -253,15 +205,7 @@ export const loginUser = async ({ email, password }: { email: string; password: 
     const response = await apiClient.post('/api/login', { email: normalizedEmail, password })
     return response.data
   } catch (error) {
-    if (!isUnreachable(error)) throw parseAxiosError(error)
-    try {
-      return (await resolveStorageFallback({
-        action: 'login',
-        payload: { email: normalizedEmail, password },
-      })) as AuthResponse
-    } catch (fallbackError) {
-      throw parseAxiosError(fallbackError)
-    }
+    throw parseAxiosError(error)
   }
 }
 
@@ -287,15 +231,7 @@ export const resetPassword = async ({ email, newPassword }: { email: string; new
   try {
     await apiClient.post('/api/reset-password', { email: normalizedEmail, newPassword })
   } catch (error) {
-    if (!isUnreachable(error)) throw parseAxiosError(error)
-    try {
-      await resolveStorageFallback({
-        action: 'reset-password',
-        payload: { email: normalizedEmail, newPassword },
-      })
-    } catch (fallbackError) {
-      throw parseAxiosError(fallbackError)
-    }
+    throw parseAxiosError(error)
   }
 }
 
@@ -340,3 +276,52 @@ export const saveUserData = async (email: string | null, data: UserData): Promis
     }
   }
 }
+
+export const sendHeartbeat = async (email: string | null): Promise<void> => {
+  const normalizedEmail = normalizeEmail(email)
+  if (!normalizedEmail) return
+
+  try {
+    await apiClient.post('/api/heartbeat', null, { params: { email: normalizedEmail } })
+  } catch (error) {
+    // silently fail heartbeat on errors
+  }
+}
+
+export const sendOtp = async (identifier: string): Promise<string> => {
+  const normalized = normalizeEmail(identifier)
+  if (!normalized) throw new Error('Email or phone number is required.')
+  try {
+    const response = await apiClient.post('/api/send-otp', { email: normalized })
+    return response.data.message || 'Verification code sent.'
+  } catch (error) {
+    throw parseAxiosError(error)
+  }
+}
+
+export const verifyOtp = async (identifier: string, otp: string): Promise<boolean> => {
+  const normalized = normalizeEmail(identifier)
+  if (!normalized || !otp) throw new Error('Identifier and OTP are required.')
+  try {
+    await apiClient.post('/api/verify-otp', { email: normalized, otp })
+    return true
+  } catch (error) {
+    throw parseAxiosError(error)
+  }
+}
+
+export const loginWithOtp = async (identifier: string, otp: string): Promise<AuthResponse> => {
+  const normalized = normalizeEmail(identifier)
+  if (!normalized || !otp) throw new Error('Identifier and OTP are required.')
+  try {
+    const response = await apiClient.post('/api/login-otp', { email: normalized, otp })
+    return response.data
+  } catch (error) {
+    throw parseAxiosError(error)
+  }
+}
+
+export const logoutUser = async (): Promise<void> => {
+  await apiClient.post('/api/logout')
+}
+
