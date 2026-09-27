@@ -324,3 +324,4 @@ export const loginWithOtp = async (identifier: string, otp: string): Promise<Aut
 export const logoutUser = async (): Promise<void> => {
   await apiClient.post('/api/logout')
 }
+
