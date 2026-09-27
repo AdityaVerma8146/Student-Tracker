@@ -26,7 +26,6 @@ public class OtpEntity {
 
     @Column(name = "verified", nullable = false, columnDefinition = "boolean default false")
     private boolean verified;
-
     public OtpEntity() {}
 
     public OtpEntity(String email, String otp, String expiresAt) {

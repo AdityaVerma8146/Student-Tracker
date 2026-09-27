@@ -318,6 +318,7 @@ export default function LoginPage({ onAuthSuccess, switchToSignup }: LoginProps)
                   Forgot password?
                 </button>
               </div>
+        {/* 1. PASSWORD MODE */}
               <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/15 transition-all">
                 <Lock size={18} className="text-slate-400" />
                 <input
