@@ -1,0 +1,23 @@
+services:
+  student-tracker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "${HOST_PORT:-4000}:4000"
+    environment:
+      PORT: 4000
+      DB_PATH: /app/data/authdb
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      MAIL_FROM: ${MAIL_FROM:-}
+    volumes:
+      - ./backend/data:/app/data

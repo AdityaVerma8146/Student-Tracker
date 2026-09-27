@@ -16,9 +16,26 @@ export interface Chapter {
   topics: Topic[]
 }
 
+export interface SubjectAssignment {
+  id: number
+  title: string
+  dueDate: string
+  completed: boolean
+  description?: string
+}
+
 export interface Subject {
   id: number
   name: string
+  code?: string
+  teacher?: string
+  credits?: number
+  studyHours?: number
+  notes?: string
+  color?: string
+  difficulty?: 'easy' | 'medium' | 'hard'
+  priority?: 'low' | 'medium' | 'high'
+  assignments?: SubjectAssignment[]
   chapters: Chapter[]
   createdAt: string
 }
@@ -46,6 +63,15 @@ export interface CalendarTask {
   category: string
   done: boolean
   createdAt: string
+  description?: string
+  startTime?: string
+  endTime?: string
+  priority?: 'low' | 'medium' | 'high'
+  subject?: string
+  location?: string
+  notes?: string
+  eventType?: 'class' | 'assignment' | 'exam' | 'study' | 'task' | 'deadline'
+  isRecurring?: boolean
 }
 
 export interface Profile {
@@ -87,6 +113,7 @@ export interface Roadmap {
   weekdayBlocks: RoadmapBlock[]
   weekendBlocks: RoadmapBlock[]
   rules: RoadmapRule[]
+  semesterNodes?: SemesterRoadmapNode[]
 }
 
 // ---- Aggregate user data (what gets persisted) -----------------------------
@@ -111,6 +138,7 @@ export interface AuthResponse {
 export type AccentTheme = 'blue' | 'purple' | 'pink'
 
 export type CurrentView =
+  | 'landing'
   | 'login'
   | 'signup'
   | 'dashboard'
@@ -142,6 +170,46 @@ export interface PublicProfile {
   email: string
   name: string
   avatar: string | null
+  isOnline?: boolean
+  lastActive?: string
+}
+
+export type GroupRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED'
+
+export interface GroupRequestView {
+  id: number
+  groupId: number
+  groupName: string
+  userEmail: string
+  userName: string
+  userAvatar: string | null
+  status: GroupRequestStatus
+  message: string
+  createdAt: string
+}
+
+export interface GroupSearchResult {
+  id: number
+  name: string
+  description: string
+  leaderEmail: string
+  leaderName: string
+  memberCount: number
+  createdAt: string
+  userStatus: 'MEMBER' | 'PENDING_REQUEST' | 'NONE'
+  pendingRequestId?: number | null
+}
+
+export interface SemesterRoadmapNode {
+  id: string
+  title: string
+  type: 'semester' | 'subject' | 'unit' | 'chapter' | 'topic' | 'task'
+  parentId?: string | null
+  completed: boolean
+  progress: number // 0-100
+  priority?: 'low' | 'medium' | 'high'
+  deadline?: string
+  notes?: string
 }
 
 export interface FriendRequestView {
@@ -181,6 +249,14 @@ export interface GroupTask {
   completedAt: string | null
 }
 
+export interface GroupMessageView {
+  id: number
+  senderEmail: string
+  senderName: string
+  content: string
+  createdAt: string
+}
+
 export interface GroupDetail {
   id: number
   name: string
@@ -189,6 +265,7 @@ export interface GroupDetail {
   createdAt: string
   members: MemberProgress[]
   tasks: GroupTask[]
+  messages?: GroupMessageView[]
 }
 
 export interface Badge {

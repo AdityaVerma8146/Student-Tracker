@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Check, Trash2 } from 'lucide-react'
+import { Check, Trash2, Pencil } from 'lucide-react'
 import { getCalendarCategory, formatDayLabel } from '../utils/calendarUtils'
 
 const EXIT_MS = 220
 
-function CalendarTaskList({ tasks, onToggle, onDelete }) {
+function CalendarTaskList({ tasks, onToggle, onDelete, onEdit }) {
   // Track ids currently animating out, so the row plays a fade+shrink
   // before it actually leaves the `tasks` array.
   const [leaving, setLeaving] = useState(() => new Set())
@@ -61,17 +61,30 @@ function CalendarTaskList({ tasks, onToggle, onDelete }) {
               </p>
               <p className="text-xs text-gray-400">{formatDayLabel(t.date)} · {cat.label}</p>
             </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleDelete(t.id)
-              }}
-              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition"
-              aria-label="Delete task"
-            >
-              <Trash2 size={14} />
-            </button>
+            <div className="opacity-0 group-hover:opacity-100 flex items-center transition">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit(t)
+                }}
+                className="p-1.5 text-gray-400 hover:text-blue-500 transition rounded-md"
+                aria-label="Edit task"
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDelete(t.id)
+                }}
+                className="p-1.5 text-gray-400 hover:text-red-500 transition rounded-md"
+                aria-label="Delete task"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           </li>
         )
       })}

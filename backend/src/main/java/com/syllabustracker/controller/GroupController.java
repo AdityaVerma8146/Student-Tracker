@@ -70,4 +70,59 @@ public class GroupController {
         groupService.deleteTask(groupId, taskId, email);
         return ResponseEntity.ok(Map.of("message", "Task deleted."));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<GroupSearchResult>> searchGroups(@RequestParam(required = false) String query, @RequestParam String email) {
+        return ResponseEntity.ok(groupService.searchGroups(query, email));
+    }
+
+    @PostMapping("/{groupId}/requests")
+    public ResponseEntity<GroupRequestView> sendJoinRequest(@PathVariable Long groupId, @RequestBody SendGroupRequestPayload payload) {
+        GroupRequestView view = groupService.sendJoinRequest(groupId, payload.userEmail(), payload.message());
+        return ResponseEntity.status(HttpStatus.CREATED).body(view);
+    }
+
+    @DeleteMapping("/requests/{requestId}")
+    public ResponseEntity<Map<String, String>> cancelJoinRequest(@PathVariable Long requestId, @RequestParam String email) {
+        groupService.cancelJoinRequest(requestId, email);
+        return ResponseEntity.ok(Map.of("message", "Request cancelled."));
+    }
+
+    @GetMapping("/{groupId}/requests")
+    public ResponseEntity<List<GroupRequestView>> listGroupRequests(@PathVariable Long groupId, @RequestParam String email) {
+        return ResponseEntity.ok(groupService.listGroupRequests(groupId, email));
+    }
+
+    @GetMapping("/my-requests")
+    public ResponseEntity<List<GroupRequestView>> listMyRequests(@RequestParam String email) {
+        return ResponseEntity.ok(groupService.listMyRequests(email));
+    }
+
+    @PostMapping("/requests/{requestId}/respond")
+    public ResponseEntity<GroupRequestView> respondToJoinRequest(@PathVariable Long requestId, @RequestBody RespondGroupRequestPayload payload) {
+        return ResponseEntity.ok(groupService.respondToJoinRequest(requestId, payload.approverEmail(), payload.accept()));
+    }
+
+    @PostMapping("/{groupId}/leave")
+    public ResponseEntity<Map<String, String>> leaveGroup(@PathVariable Long groupId, @RequestParam String email) {
+        groupService.leaveGroup(groupId, email);
+        return ResponseEntity.ok(Map.of("message", "You left the group."));
+    }
+
+    @PatchMapping("/{groupId}/roles")
+    public ResponseEntity<Map<String, String>> updateMemberRole(@PathVariable Long groupId, @RequestBody UpdateRolePayload payload) {
+        groupService.updateMemberRole(groupId, payload.byEmail(), payload.targetEmail(), payload.newRole());
+        return ResponseEntity.ok(Map.of("message", "Role updated."));
+    }
+
+    @GetMapping("/{groupId}/messages")
+    public ResponseEntity<List<GroupMessageView>> getMessages(@PathVariable Long groupId, @RequestParam String email) {
+        return ResponseEntity.ok(groupService.getMessages(groupId, email));
+    }
+
+    @PostMapping("/{groupId}/messages")
+    public ResponseEntity<GroupMessageView> postMessage(@PathVariable Long groupId, @RequestBody CreateMessageRequest request) {
+        GroupMessageView msg = groupService.postMessage(groupId, request.senderEmail(), request.content());
+        return ResponseEntity.status(HttpStatus.CREATED).body(msg);
+    }
 }

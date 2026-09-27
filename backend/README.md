@@ -12,22 +12,49 @@ frontend's AI Assistant.
 
 ## Configure
 
-Copy `.env.example` and export the variables in your shell (Spring Boot
-doesn't read `.env` files itself — use `direnv`, your IDE's run config, or
-just `export` them):
+Set environment variables in your shell or deployment settings (Spring Boot
+doesn't read `.env` files itself):
 
 ```bash
 export GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 export GROQ_API_KEY=your-groq-api-key
+export SMTP_HOST=smtp.example.com
+export SMTP_PORT=587
+export SMTP_USERNAME=your-smtp-user
+export SMTP_PASSWORD=your-smtp-password
+export MAIL_FROM=noreply@example.com
 ```
 
-Both are optional individually — the app runs without them, but:
-- Google Sign-In returns a clear 500 error if `GOOGLE_CLIENT_ID` isn't set.
-- The AI Assistant returns a clear 500 error if `GROQ_API_KEY` isn't set.
+Google and Groq are optional individually. Email settings are required for
+new account verification, email-code login, and password recovery. Without
+SMTP, those flows return a clear configuration error rather than pretending
+that a code was sent. Password login for existing accounts works without
+SMTP. Set `SESSION_COOKIE_SECURE=true` when serving through HTTPS; leave it
+false for local HTTP development. Secure cookies are enabled by default.
 
-Email/password auth and everything else works with no configuration at all.
+- `GOOGLE_CLIENT_ID` enables Google Sign-In.
+- `GROQ_API_KEY` enables the AI Assistant.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `MAIL_FROM`
+   configure email verification.
 
-## Run
+The server uses an HTTP-only session cookie after login. Authenticated API
+requests must use that session, and account identity is taken from the
+session rather than trusted from caller-supplied email fields.
+
+## Run with Docker
+
+From the repository root:
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:4000`. The Compose service stores H2 data in
+`backend/data`, so rebuilding the image does not remove accounts or app data.
+Set the environment variables above before starting Compose to enable those
+integrations.
+
+## Run locally
 
 ```bash
 cd backend
@@ -35,8 +62,7 @@ mvn spring-boot:run
 ```
 
 This starts the API on `http://localhost:4000` and creates a local H2
-database file at `backend/data/authdb.mv.db` on first run (the `users` table
-is created automatically via `spring.jpa.hibernate.ddl-auto=update`).
+database file at `backend/data/authdb.mv.db` on first run.
 
 The frontend's `vite.config.ts` already proxies `/api/*` to `localhost:4000`
 in dev, so `npm run dev` in the `frontend/` folder talks to this server with
@@ -91,6 +117,11 @@ server needed.
      https://console.groq.com/keys. This is separate from any value you've
      set locally on your own machine — Render has its own environment.
    - `GOOGLE_CLIENT_ID` — optional, only needed if you use Google sign-in.
+    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and
+       `MAIL_FROM` — required for signup verification, email-code login, and
+       password recovery.
+    - `SESSION_COOKIE_SECURE=true` — set this because the public app is served
+       over HTTPS.
    - Render sets `PORT` itself automatically; `application.properties`
      already reads it (`server.port=${PORT:4000}`), nothing to do there.
 7. **Persistent disk (important):** this backend stores its database as a
@@ -107,23 +138,24 @@ server needed.
    serves the whole site — frontend, API, and AI assistant together. No
    `VITE_API_URL`, no CORS setup, no second service needed.
 
-## ⚠️ Not compiled/tested here
+## Validation
 
-This backend was written in an environment with no network access to Maven
-Central, so `mvn compile` could not actually be run to verify it. The code
-was written carefully and reviewed line-by-line, but **please run
-`mvn spring-boot:run` yourself and smoke-test signup/login/save before
-relying on this**, the way you would with any code you haven't personally
-run yet.
+Run `mvn test` from `backend/` and `npm run typecheck` from `frontend/` before
+deploying. The image build can be exercised from the repository root with
+`docker compose build`.
 
 ## API
 
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/api/signup` | `{email, password, mood?}` | 201, `{email, mood}` |
-| POST | `/api/login` | `{email, password}` | `{email, mood, data}` |
-| POST | `/api/google-login` | `{idToken}` | Verifies via Google's `tokeninfo` endpoint |
-| POST | `/api/reset-password` | `{email, newPassword}` | `{email, message}` |
+| POST | `/api/signup` | `{email, password, mood?}` | Requires verified email OTP; 201, `{email, mood}` |
+| POST | `/api/login` | `{email, password}` | Sets an HTTP-only session cookie; `{email, mood, data}` |
+| POST | `/api/google-login` | `{idToken}` | Verifies via Google's `tokeninfo` endpoint and sets a session |
+| POST | `/api/logout` | — | Invalidates the current session |
+| POST | `/api/send-otp` | `{email}` | Sends a 10-minute email verification code |
+| POST | `/api/verify-otp` | `{email, otp}` | Verifies the code for signup or recovery |
+| POST | `/api/login-otp` | `{email, otp}` | Consumes code and sets a session |
+| POST | `/api/reset-password` | `{email, newPassword}` | Requires verified email OTP; `{email, message}` |
 | GET | `/api/user-data?email=` | — | `{data}` |
 | POST | `/api/user-data` | `{email, data}` | `{email, message}` |
 | POST | `/api/ai/correct` | `{text}` | `{corrected, changed, explanation?}` |

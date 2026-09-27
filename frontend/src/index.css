@@ -296,3 +296,22 @@ h1, h2 {
     transform: none;
   }
 }
+
+/* ============================================================
+   RECHARTS TOOLTIP
+   ============================================================ */
+
+.chart-tooltip {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  color: #111827 !important;
+}
+
+.dark .chart-tooltip {
+  background-color: #1f2937 !important;
+  border: 1px solid #374151 !important;
+  color: #f3f4f6 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+}
