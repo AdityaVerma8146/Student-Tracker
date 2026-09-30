@@ -7,7 +7,7 @@ frontend's AI Assistant.
 
 ## Requirements
 
-- Java 17+
+- Java 25+
 - Maven 3.9+ (or use your IDE's built-in Maven support)
 
 ## Configure
