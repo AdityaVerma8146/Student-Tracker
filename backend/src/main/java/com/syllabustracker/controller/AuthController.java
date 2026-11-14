@@ -57,7 +57,9 @@ public class AuthController {
         AuthService.OtpResult result = authService.sendOtp(request.email());
         return ResponseEntity.ok(java.util.Map.of(
             "email", result.email(),
-            "message", "Verification code sent successfully."
+            "message", result.localDelivery()
+                    ? "Local verification code printed in the backend terminal."
+                    : "Verification code sent successfully."
         ));
     }
 

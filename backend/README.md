@@ -25,12 +25,11 @@ export SMTP_PASSWORD=your-smtp-password
 export MAIL_FROM=noreply@example.com
 ```
 
-Google and Groq are optional individually. Email settings are required for
-new account verification, email-code login, and password recovery. Without
-SMTP, those flows return a clear configuration error rather than pretending
-that a code was sent. Password login for existing accounts works without
-SMTP. Set `SESSION_COOKIE_SECURE=true` when serving through HTTPS; leave it
-false for local HTTP development. Secure cookies are enabled by default.
+Google and Groq are optional individually. SMTP settings are required for
+email verification, email-code login, and password recovery outside local
+development. Set `SESSION_COOKIE_SECURE=true` when serving through HTTPS;
+leave it false for local HTTP development. Secure cookies are enabled by
+default.
 
 - `GOOGLE_CLIENT_ID` enables Google Sign-In.
 - `GROQ_API_KEY` enables the AI Assistant.
@@ -58,11 +57,15 @@ integrations.
 
 ```bash
 cd backend
-mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 This starts the API on `http://localhost:4000` and creates a local H2
 database file at `backend/data/authdb.mv.db` on first run.
+In the `local` profile, verification codes are printed in the backend
+terminal and the signup/login screens tell you where to find them. This
+development-only behavior is disabled in the default and production profiles;
+configure SMTP for real email delivery in deployed environments.
 
 The frontend's `vite.config.ts` already proxies `/api/*` to `localhost:4000`
 in dev, so `npm run dev` in the `frontend/` folder talks to this server with

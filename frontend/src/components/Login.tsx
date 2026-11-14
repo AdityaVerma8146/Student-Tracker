@@ -118,11 +118,11 @@ export default function LoginPage({ onAuthSuccess, switchToSignup }: LoginProps)
 
     setIsSubmitting(true)
     try {
-      await sendOtp(identifier)
+      const message = await sendOtp(identifier)
       setOtpSent(true)
       setTimer(60)
       setCanResend(false)
-      setSuccessMessage(`Verification code sent to ${identifier}`)
+      setSuccessMessage(message)
     } catch (err) {
       setError((err as Error).message || 'Failed to send verification code.')
     } finally {

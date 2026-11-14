@@ -150,6 +150,9 @@ export const saveActiveUserEmail = (email: string | null): void => {
 
 const parseAxiosError = (error: unknown): Error => {
   const axiosErr = error as AxiosError<{ error?: string; message?: string }>
+  if (axiosErr?.response?.status === 502) {
+    return new Error('Cannot connect to the backend server (502). Please ensure the backend is running at http://localhost:4000')
+  }
   const data = axiosErr?.response?.data
   if (data?.error) return new Error(data.error)
   if (data?.message) return new Error(data.message)
