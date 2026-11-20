@@ -153,7 +153,7 @@ export default function AIAssistant({
           spawnRipple(e)
           setOpen(true)
         }}
-        className={`ripple-container fixed bottom-6 right-6 z-[90] h-14 w-14 rounded-full btn-primary shadow-lg flex items-center justify-center transition-transform ${open ? 'scale-0' : 'scale-100'}`}
+        className={`ripple-container fixed top-20 right-6 z-[90] h-14 w-14 rounded-full btn-primary shadow-lg flex items-center justify-center transition-transform ${open ? 'scale-0' : 'scale-100'}`}
         aria-label="Open AI Assistant"
         title="AI Assistant"
       >

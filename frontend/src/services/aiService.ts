@@ -1,5 +1,6 @@
 import apiClient from './apiClient'
 import { extractErrorMessage } from '../utils/apiError'
+import type { AxiosError } from 'axios'
 
 export interface CorrectionResult {
   corrected: string
@@ -24,8 +25,15 @@ export interface ChatMessage {
 }
 
 const AI_FALLBACK = 'The AI assistant is unavailable right now. Please try again.'
+const AI_REQUEST_TIMEOUT_MS = 90_000
 
-const parseError = (error: unknown): Error => new Error(extractErrorMessage(error, AI_FALLBACK))
+const parseError = (error: unknown): Error => {
+  const axiosError = error as AxiosError
+  if (axiosError?.code === 'ECONNABORTED' || axiosError?.code === 'ETIMEDOUT') {
+    return new Error('The AI request took too long. Please try again with a shorter prompt.')
+  }
+  return new Error(extractErrorMessage(error, AI_FALLBACK))
+}
 
 const badShapeError = () =>
   new Error("Got an unexpected response from the server. Make sure the app's API requests are reaching the backend.")
@@ -36,7 +44,7 @@ const badShapeError = () =>
  */
 export async function correctText(text: string): Promise<CorrectionResult> {
   try {
-    const response = await apiClient.post('/api/ai/correct', { text })
+    const response = await apiClient.post('/api/ai/correct', { text }, { timeout: AI_REQUEST_TIMEOUT_MS })
     const data = response.data
     if (!data || typeof data !== 'object' || typeof data.corrected !== 'string') {
       // The response wasn't the JSON shape we expect — most likely the
@@ -60,7 +68,7 @@ export async function generateSchedule(prompt: string, startDate: string, contex
       prompt,
       startDate,
       context: contextSummary,
-    })
+    }, { timeout: AI_REQUEST_TIMEOUT_MS })
     const data = response.data
     if (!data || typeof data !== 'object' || !Array.isArray(data.tasks)) {
       throw badShapeError()
@@ -82,7 +90,7 @@ export async function chatWithAI(messages: ChatMessage[], contextSummary?: strin
     const response = await apiClient.post('/api/ai/chat', {
       messages,
       context: contextSummary,
-    })
+    }, { timeout: AI_REQUEST_TIMEOUT_MS })
     const data = response.data
     if (!data || typeof data !== 'object' || typeof data.reply !== 'string') {
       throw badShapeError()

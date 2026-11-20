@@ -78,7 +78,10 @@ public class AiService {
 
         ObjectNode body = objectMapper.createObjectNode();
         body.put("model", model);
-        body.put("max_tokens", maxTokens);
+        body.put("max_completion_tokens", maxTokens);
+        if (model != null && model.startsWith("openai/gpt-oss-")) {
+            body.put("reasoning_effort", "low");
+        }
         body.put("temperature", temperature);
         ArrayNode messages = body.putArray("messages");
 
