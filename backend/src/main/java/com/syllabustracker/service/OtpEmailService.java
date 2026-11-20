@@ -36,14 +36,14 @@ public class OtpEmailService {
 
     public boolean send(String email, String otp) {
         if (smtpHost == null || smtpHost.isBlank() || fromAddress == null || fromAddress.isBlank()) {
-            if (localConsoleOtpEnabled) {
+            if (localConsoleOtpEnabled && environment.acceptsProfiles(Profiles.of("local"))) {
                 logger.warn("=================================================");
                 logger.warn("LOCAL VERIFICATION CODE FOR {}: {}", email, otp);
                 logger.warn("=================================================");
                 return true;
             }
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Email verification is not configured. Set SMTP_HOST and MAIL_FROM on the server.");
+                    "Email verification is not configured. Set SMTP_USERNAME and SMTP_PASSWORD (and MAIL_FROM if different) on the server.");
         }
 
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();

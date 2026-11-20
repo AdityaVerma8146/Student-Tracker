@@ -12,12 +12,12 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
-      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_AUTH: ${SMTP_AUTH:-true}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
-      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM: ${MAIL_FROM:-${SMTP_USERNAME:-}}
     volumes:
       - ./backend/data:/app/data
