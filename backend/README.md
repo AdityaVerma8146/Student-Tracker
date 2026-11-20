@@ -7,7 +7,7 @@ frontend's AI Assistant.
 
 ## Requirements
 
-- Java 17+
+- Java 25+
 - Maven 3.9+ (or use your IDE's built-in Maven support)
 
 ## Configure
@@ -18,24 +18,36 @@ doesn't read `.env` files itself):
 ```bash
 export GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 export GROQ_API_KEY=your-groq-api-key
-export SMTP_HOST=smtp.example.com
+export SMTP_HOST=smtp.gmail.com
 export SMTP_PORT=587
-export SMTP_USERNAME=your-smtp-user
-export SMTP_PASSWORD=your-smtp-password
-export MAIL_FROM=noreply@example.com
+export SMTP_USERNAME=you@gmail.com
+export SMTP_PASSWORD=your-google-app-password
+# Optional; defaults to SMTP_USERNAME
+export MAIL_FROM=you@gmail.com
 ```
 
-Google and Groq are optional individually. Email settings are required for
-new account verification, email-code login, and password recovery. Without
-SMTP, those flows return a clear configuration error rather than pretending
-that a code was sent. Password login for existing accounts works without
-SMTP. Set `SESSION_COOKIE_SECURE=true` when serving through HTTPS; leave it
-false for local HTTP development. Secure cookies are enabled by default.
+On Windows PowerShell, set the same values in the terminal used to start the
+backend:
+
+```powershell
+$env:SMTP_USERNAME = "you@gmail.com"
+$env:SMTP_PASSWORD = "your-google-app-password"
+$env:MAIL_FROM = $env:SMTP_USERNAME
+```
+
+Google and Groq are optional individually. Gmail SMTP is the default mail
+server. For Gmail, enable 2-Step Verification and create a Google App Password;
+use that App Password as `SMTP_PASSWORD` (not your normal Gmail password).
+Set `SMTP_USERNAME` to the Gmail account that sends the OTP. `MAIL_FROM` is
+optional and defaults to `SMTP_USERNAME`. The local console OTP fallback is
+disabled by default; it can only be enabled explicitly in the `local` profile.
+Set `SESSION_COOKIE_SECURE=true` when serving through HTTPS; leave it false
+for local HTTP development. Secure cookies are enabled by default.
 
 - `GOOGLE_CLIENT_ID` enables Google Sign-In.
 - `GROQ_API_KEY` enables the AI Assistant.
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `MAIL_FROM`
-   configure email verification.
+- `SMTP_USERNAME` and `SMTP_PASSWORD` configure Gmail authentication;
+  optionally set `SMTP_HOST`, `SMTP_PORT`, and `MAIL_FROM` to override defaults.
 
 The server uses an HTTP-only session cookie after login. Authenticated API
 requests must use that session, and account identity is taken from the
@@ -58,11 +70,14 @@ integrations.
 
 ```bash
 cd backend
-mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 This starts the API on `http://localhost:4000` and creates a local H2
-database file at `backend/data/authdb.mv.db` on first run.
+database file at `backend/data/authdb.mv.db` on first run. Configure
+`SMTP_USERNAME` and `SMTP_PASSWORD` to send verification, login, and password
+recovery codes through Gmail. With no SMTP credentials, OTP requests fail
+with a setup error instead of printing the code to the backend terminal.
 
 The frontend's `vite.config.ts` already proxies `/api/*` to `localhost:4000`
 in dev, so `npm run dev` in the `frontend/` folder talks to this server with
@@ -117,9 +132,10 @@ server needed.
      https://console.groq.com/keys. This is separate from any value you've
      set locally on your own machine — Render has its own environment.
    - `GOOGLE_CLIENT_ID` — optional, only needed if you use Google sign-in.
-    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and
-       `MAIL_FROM` — required for signup verification, email-code login, and
-       password recovery.
+    - `SMTP_USERNAME` and `SMTP_PASSWORD` — Gmail account and App Password
+      used for signup verification, email-code login, and password recovery.
+      Optionally set `SMTP_HOST`, `SMTP_PORT`, and `MAIL_FROM` to override
+      the Gmail defaults.
     - `SESSION_COOKIE_SECURE=true` — set this because the public app is served
        over HTTPS.
    - Render sets `PORT` itself automatically; `application.properties`

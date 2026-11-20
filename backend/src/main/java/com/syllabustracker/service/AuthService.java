@@ -268,7 +268,7 @@ public class AuthService {
         });
     }
 
-    public record OtpResult(String email) {}
+    public record OtpResult(String email, boolean localDelivery) {}
 
     public OtpResult sendOtp(String rawEmail) {
         String email = normalizeEmail(rawEmail);
@@ -282,10 +282,10 @@ public class AuthService {
         // Valid for 10 minutes
         String expiresAt = Instant.now().plusSeconds(600).toString();
         
-        otpEmailService.send(email, otp);
+        boolean localDelivery = otpEmailService.send(email, otp);
         otpRepository.save(new OtpEntity(email, passwordEncoder.encode(otp), expiresAt));
         
-        return new OtpResult(email);
+        return new OtpResult(email, localDelivery);
     }
 
     public boolean verifyOtp(String rawEmail, String otp) {

@@ -85,7 +85,7 @@
 >   `Topic`, `DailyTask`, `DiaryEntry`, `CalendarTask`, `Roadmap`, `Profile`,
 >   `UserData`). Verified with `tsc --noEmit` (zero errors) and a production
 >   `vite build`.
-> - **Backend is now Spring Boot** (Java 17 + Maven), in `backend/`, replacing
+> - **Backend is now Spring Boot** (Java 25 + Maven), in `backend/`, replacing
 >   the old Node/Express + SQLite server. Same API surface (`/api/signup`,
 >   `/api/login`, `/api/google-login`, `/api/reset-password`, `/api/user-data`),
 >   but:
@@ -247,7 +247,7 @@ their own `package.json` / `pom.xml`.
 ### Prerequisites
 - Node.js (v18 or higher recommended)
 - npm or yarn
-- Java 17 + Maven (for the backend — see `backend/README.md`)
+- Java 25 + Maven (for the backend — see `backend/README.md`)
 
 ### Installation
 

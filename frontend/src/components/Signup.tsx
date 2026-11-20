@@ -90,12 +90,12 @@ export default function Signup({ switchToLogin, onSuccess }: SignupProps) {
 
     setIsSendingOtp(true)
     try {
-      await sendOtp(identifier)
+      const message = await sendOtp(identifier)
       setStep('otp')
       setTimer(60)
       setCanResend(false)
       setAttempts(0)
-      setInfoMessage(`Verification code sent to ${identifier}`)
+      setInfoMessage(message)
     } catch (err) {
       setError((err as Error).message || 'Failed to send verification code. Please try again.')
     } finally {
